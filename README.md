@@ -47,7 +47,10 @@ Make sure you have the following software and dependencies installed before runn
         ````
         source <env_name>/bin/activate
         ````
-3. For run docker
+
+3. Create .env file using .env-copy.
+
+4. For run docker
     ````
     docker-compose up --build
     ````
