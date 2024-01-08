@@ -18,11 +18,40 @@ from django.conf import settings
 from .utils import generate_random_otp, send_otp_via_twilio
 from .models import OtpValidate, User, DonationType
 from .constants import PAYMENT_GATEWAY
+from functools import wraps
+
+
+def error_handling_decorator(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        try:
+            return view_func(request, *args, **kwargs)
+
+        except Exception as e:
+            return Response(
+                {
+                    "message": "Internal Server Error",
+                    "error": f"An error occurred: {e}",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    return wrapper
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@error_handling_decorator
 def send_otp(request):
+    """Send Otp to Phone
+
+    Args:
+        request (phone): Valid phone number for get otp.
+
+    Returns:
+        success/failed message
+    """
+
     phone_number = request.data.get("phone_number")
     otp = generate_random_otp()
 
@@ -55,7 +84,17 @@ def send_otp(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@error_handling_decorator
 def verify_otp_and_generate_token(request):
+    """Verify OTP for the Phone number.
+
+    Args:
+        phone: Valid phone number for get otp,
+        otp: OTP user get on provided phone number.
+
+    Returns:
+        success/failed message
+    """
     phone_number = request.data.get("phone_number")
     otp_entered = str(request.data.get("otp"))
 
@@ -78,7 +117,17 @@ def verify_otp_and_generate_token(request):
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def update_payemnt_gateway(request, format=None):
+@error_handling_decorator
+def update_payment_gateway(request, format=None):
+    """Choose payment Gateway method.
+
+    Args:
+        payment_method (string, required): The payment method
+
+    Returns:
+        success/failed message
+    """
+
     payment_method = request.data.get("payment_method")
     user = User.objects.filter(id=int(request.user.id)).first()
     user.payment_gateway = payment_method
@@ -91,12 +140,14 @@ def update_payemnt_gateway(request, format=None):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@error_handling_decorator
 def success_checkout(request):
     return render(request, "success.html")
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+@error_handling_decorator
 def cancel_checkout(request):
     return render(request, "cancel.html")
 
@@ -104,7 +155,18 @@ def cancel_checkout(request):
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
+@error_handling_decorator
 def get_donation_data(request, format=None):
+    """Get Donation History
+
+    Args:
+        from (string): The start date for the donation data retrieval.
+        to (string): The end date for the donation data retrieval.
+
+    Returns:
+       Get list of donation data.
+    """
+
     user = User.objects.filter(id=int(request.user.id)).first()
     from_date = request.data.get("from")
     to_date = request.data.get("to")
@@ -127,7 +189,18 @@ def get_donation_data(request, format=None):
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
+@error_handling_decorator
 def update_payment_status(request, format=None):
+    """Update payment status based of the payment status
+
+    Args:
+        donation_type_id (string): The ID of the donation type for which the payment status needs to be updated.
+        payment_status (string): The new payment status to be set for the donation.
+
+    Returns:
+        success/failed message.
+    """
+
     id = request.data.get("donation_type_id")
     payment_status = request.data.get("payment_status")
 
@@ -149,7 +222,18 @@ def update_payment_status(request, format=None):
 @api_view(["POST"])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
+@error_handling_decorator
 def donate_amount(request, format=None):
+    """Donate Amount of your choice
+
+    Args:
+        donation_type (string, required): The type of donation.
+        amount (number, required): The donation amount.
+
+    Returns:
+        Link for checkout session.
+    """
+
     donation_type = request.data.get("donation_type")
     amount = request.data.get("amount")
     success_url = request.data.get("success_url")
@@ -180,6 +264,7 @@ def donate_amount(request, format=None):
     return Response(payment_res, status=status.HTTP_200_OK)
 
 
+@error_handling_decorator
 def donation_chart(request):
     donations = [
         {"id": 10, "donation_type": "education", "amount": 2500.0, "status": "success"},

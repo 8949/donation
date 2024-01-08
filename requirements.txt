@@ -1,14 +1,14 @@
 aiohttp
-aiohttp-retry
+aiohttp - retry
 aiosignal
 asgiref
 attrs
 certifi
 cffi
-charset-normalizer
+charset - normalizer
 cryptography
 Django
-django-dotenv
+django - dotenv
 djangorestframework
 frozenlist
 idna
@@ -16,7 +16,7 @@ jwt
 multidict
 pycparser
 PyJWT
-python-dotenv
+python - dotenv
 pytz
 razorpay
 requests
